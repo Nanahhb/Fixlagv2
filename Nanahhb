@@ -1,0 +1,320 @@
+
+-- NANAHHB FPS BOOSTER
+-- Roblox Studio | Android + PC
+-- Place in StarterPlayer > StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Remove previous GUI
+local oldGui = playerGui:FindFirstChild("NanahhbFPSBooster")
+if oldGui then
+    oldGui:Destroy()
+end
+
+local GOLD = Color3.fromRGB(235, 190, 75)
+local CREAM = Color3.fromRGB(255, 249, 230)
+local PALE = Color3.fromRGB(255, 239, 184)
+local BROWN = Color3.fromRGB(105, 76, 36)
+local GREEN = Color3.fromRGB(74, 160, 100)
+local RED = Color3.fromRGB(210, 100, 85)
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "NanahhbFPSBooster"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = false
+gui.DisplayOrder = 20
+gui.Parent = playerGui
+
+-- Main panel
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.fromOffset(280, 190)
+main.Position = UDim2.new(0.5, -140, 0.5, -95)
+main.BackgroundColor3 = CREAM
+main.BorderSizePixel = 0
+main.Active = true
+main.Parent = gui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 18)
+mainCorner.Parent = main
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = GOLD
+stroke.Thickness = 2
+stroke.Parent = main
+
+-- Header
+local header = Instance.new("TextLabel")
+header.Name = "Header"
+header.Size = UDim2.new(1, -18, 0, 42)
+header.Position = UDim2.fromOffset(9, 5)
+header.BackgroundTransparency = 1
+header.Text = "✦ Nanahhb FPS Booster"
+header.TextColor3 = BROWN
+header.TextSize = 19
+header.Font = Enum.Font.GothamBold
+header.Parent = main
+
+-- Status
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, -24, 0, 28)
+status.Position = UDim2.fromOffset(12, 49)
+status.BackgroundTransparency = 1
+status.Text = "Status: OFF"
+status.TextColor3 = BROWN
+status.TextSize = 15
+status.Font = Enum.Font.GothamMedium
+status.Parent = main
+
+-- Toggle
+local toggle = Instance.new("TextButton")
+toggle.Name = "ToggleButton"
+toggle.Size = UDim2.new(1, -36, 0, 46)
+toggle.Position = UDim2.fromOffset(18, 83)
+toggle.BackgroundColor3 = GREEN
+toggle.BorderSizePixel = 0
+toggle.Text = "BOOST: ON"
+toggle.TextColor3 = Color3.new(1, 1, 1)
+toggle.TextSize = 17
+toggle.Font = Enum.Font.GothamBold
+toggle.AutoButtonColor = true
+toggle.Parent = main
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 12)
+toggleCorner.Parent = toggle
+
+-- Hint
+local hint = Instance.new("TextLabel")
+hint.Size = UDim2.new(1, -20, 0, 28)
+hint.Position = UDim2.fromOffset(10, 143)
+hint.BackgroundTransparency = 1
+hint.Text = "Chạm/giữ phần tiêu đề để kéo"
+hint.TextColor3 = BROWN
+hint.TextSize = 12
+hint.Font = Enum.Font.Gotham
+hint.Parent = main
+
+-- Minimize button
+local mini = Instance.new("TextButton")
+mini.Name = "Minimize"
+mini.Size = UDim2.fromOffset(32, 30)
+mini.Position = UDim2.new(1, -39, 0, 8)
+mini.BackgroundColor3 = PALE
+mini.BorderSizePixel = 0
+mini.Text = "—"
+mini.TextColor3 = BROWN
+mini.TextSize = 18
+mini.Font = Enum.Font.GothamBold
+mini.Parent = main
+
+local miniCorner = Instance.new("UICorner")
+miniCorner.CornerRadius = UDim.new(0, 9)
+miniCorner.Parent = mini
+
+-- Floating reopen button
+local reopen = Instance.new("TextButton")
+reopen.Name = "Reopen"
+reopen.Size = UDim2.fromOffset(130, 42)
+reopen.Position = UDim2.new(0, 16, 0.5, 0)
+reopen.BackgroundColor3 = CREAM
+reopen.Text = "✦ Nanahhb"
+reopen.TextColor3 = BROWN
+reopen.TextSize = 15
+reopen.Font = Enum.Font.GothamBold
+reopen.Visible = false
+reopen.Active = true
+reopen.Parent = gui
+
+local reopenCorner = Instance.new("UICorner")
+reopenCorner.CornerRadius = UDim.new(0, 13)
+reopenCorner.Parent = reopen
+
+local reopenStroke = Instance.new("UIStroke")
+reopenStroke.Color = GOLD
+reopenStroke.Thickness = 2
+reopenStroke.Parent = reopen
+
+-- Save original values so OFF can restore them
+local enabled = false
+local saved = {}
+local savedLighting = {}
+
+local function saveProperty(obj, property)
+    local ok, value = pcall(function()
+        return obj[property]
+    end)
+    if not ok then return end
+
+    if not saved[obj] then
+        saved[obj] = {}
+    end
+
+    if saved[obj][property] == nil then
+        saved[obj][property] = value
+    end
+end
+
+local function applyObject(obj)
+    if obj:IsA("PostEffect") then
+        saveProperty(obj, "Enabled")
+        obj.Enabled = false
+
+    elseif obj:IsA("ParticleEmitter")
+        or obj:IsA("Trail")
+        or obj:IsA("Beam") then
+        saveProperty(obj, "Enabled")
+        obj.Enabled = false
+
+    elseif obj:IsA("BasePart") then
+        saveProperty(obj, "CastShadow")
+        obj.CastShadow = false
+    end
+end
+
+local function turnOn()
+    savedLighting.GlobalShadows = Lighting.GlobalShadows
+    savedLighting.EnvironmentDiffuseScale =
+        Lighting.EnvironmentDiffuseScale
+    savedLighting.EnvironmentSpecularScale =
+        Lighting.EnvironmentSpecularScale
+
+    Lighting.GlobalShadows = false
+    Lighting.EnvironmentDiffuseScale = 0
+    Lighting.EnvironmentSpecularScale = 0
+
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        applyObject(obj)
+    end
+
+    for _, obj in ipairs(Lighting:GetDescendants()) do
+        if obj:IsA("PostEffect") then
+            applyObject(obj)
+        end
+    end
+
+    enabled = true
+    status.Text = "Status: BOOST ON"
+    toggle.Text = "BOOST: ON"
+    toggle.BackgroundColor3 = GREEN
+end
+
+local function turnOff()
+    enabled = false
+
+    for obj, properties in pairs(saved) do
+        if obj and obj.Parent then
+            for property, value in pairs(properties) do
+                pcall(function()
+                    obj[property] = value
+                end)
+            end
+        end
+    end
+
+    saved = {}
+
+    for property, value in pairs(savedLighting) do
+        pcall(function()
+            Lighting[property] = value
+        end)
+    end
+
+    savedLighting = {}
+
+    status.Text = "Status: OFF"
+    toggle.Text = "BOOST: OFF"
+    toggle.BackgroundColor3 = RED
+end
+
+toggle.Activated:Connect(function()
+    if enabled then
+        turnOff()
+    else
+        turnOn()
+    end
+end)
+
+-- Minimize / reopen
+mini.Activated:Connect(function()
+    main.Visible = false
+    reopen.Visible = true
+end)
+
+reopen.Activated:Connect(function()
+    main.Visible = true
+    reopen.Visible = false
+end)
+
+-- Drag using mouse or touch
+local function makeDraggable(frame, handle)
+    local dragging = false
+    local dragInput
+    local dragStart
+    local startPos
+
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            dragInput = input
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if not dragging then return end
+
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStart
+
+            frame.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
+makeDraggable(main, header)
+makeDraggable(reopen, reopen)
+
+-- If new effects/parts are added while boost is ON
+Workspace.DescendantAdded:Connect(function(obj)
+    if enabled then
+        task.defer(function()
+            if enabled and obj.Parent then
+                applyObject(obj)
+            end
+        end)
+    end
+end)
+
+Lighting.DescendantAdded:Connect(function(obj)
+    if enabled and obj:IsA("PostEffect") then
+        task.defer(function()
+            if enabled and obj.Parent then
+                applyObject(obj)
+            end
+        end)
+    end
+end)
+
+print("[Nanahhb FPS Booster] Ready!")
